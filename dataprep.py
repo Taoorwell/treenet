@@ -1,67 +1,16 @@
-from python_gdal import *
+from func import *
 import os
-import matplotlib.pyplot as plt
 from unet import *
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 import numpy as np
 
-file = r'D:/Repos/temp'
-tif_file = [r'/tiles/tile_WV3_Pansharpen_11_2016_{}.tif'.format(n+1) for n in range(25)]
-mask_file = [r'/masks_single_trees/mask_single_{}.tif'.format(n+1) for n in range(25)]
-
-
-def get_image_data(file):
-    bands_data = get_raster_info(file)
-    image_data = norma_data(bands_data, norma_methods='min-max')
-    return image_data
-
-
-# image_data = get_raster_info(file+tif_file[0])
-# print(image_data.shape)
-
-
-class CrownDataset(Dataset):
-    def __init__(self, tif_file, mask_file, n_random):
-        self.tif_file = tif_file
-        self.mask_file = mask_file
-        self.n_random = n_random
-
-    def __len__(self):
-        return len(self.tif_file) * self.n_random
-
-    def __getitem__(self, item):
-        i = item // self.n_random
-        image_data = get_image_data(os.path.join(file + self.tif_file[i]))
-        mask_data = get_raster_info(os.path.join(file + self.mask_file[i]))
-        location = random_sample(self.n_random)
-        new_item = item % self.n_random
-        (h, w) = location[new_item]
-        patch = torch.from_numpy(image_data[h-99: h+101, w-99: w+101].transpose([2, 0, 1]))
-        mask = torch.from_numpy(mask_data[h-99: h+101, w-99: w+101][:, :, 0])
-        sample = {'patch': patch, 'mask': mask, 'location': (h, w)}
-        return sample
-
-
-def random_sample(n):
-    x = np.random.randint(99, 899, (n,))
-    y = np.random.randint(99, 899, (n,))
-    location = [(h, w) for h, w in zip(x, y)]
-    return location
-
-
-def show_sample(sample):
-    patch = np.array(sample['patch']).transpose((1, 2, 0))[:, :, 3:6]
-    mask = np.array(sample['mask'])
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    ax1.imshow(patch)
-    ax2.imshow(mask)
-    plt.title('Location:{}'.format(sample['location']))
-    plt.show()
-
+tif_file = [r'../tiles/tile_WV3_Pansharpen_11_2016_{}.tif'.format(n+1) for n in range(25)]
+mask_file = [r'../masks_single_trees/mask_single_{}.tif'.format(n+1) for n in range(25)]
 
 #############
-crowndataset = CrownDataset(tif_file=tif_file, mask_file=mask_file, n_random=250)
+crowndataset = CrownDataset(tif_file=tif_file, mask_file=mask_file, m=200, n_random=250)
 # for i in tqdm(range(len(crowndataset))):
 #     sample = crowndataset[i]
 #     print(sample['patch'].size(), sample['mask'].size(),
@@ -71,29 +20,31 @@ crowndataset = CrownDataset(tif_file=tif_file, mask_file=mask_file, n_random=250
 
 ##############
 
-#for i in tqdm(range(len(crowndataset))):
-#    sample = crowndataset[i]
-#    location = sample['location']
-#    plt.scatter(x=location[0], y=location[1])
-#    square = plt.Rectangle((location[0]-99, location[1]-99), 200, 200, ec='cyan',
-#                           fc='none')
-#    plt.gca().add_patch(square)
-#    if i == 500:
-#        break
+# for i in tqdm(range(len(crowndataset))):
+#     sample = crowndataset[i]
+#     location = sample['location']
+#     plt.scatter(x=location[0], y=location[1])
+#     square = plt.Rectangle((location[0]-99, location[1]-99), 200, 200, ec='cyan', fc='none')
+#     plt.gca().add_patch(square)
+#     if i == 250:
+#         break
 # square = plt.Rectangle((0, 0), 1000, 1000, ec='red', fc='none')
 # plt.gca().add_patch(square)
 # plt.show()
 ##############################
 
-
+unet = Unet(7, 2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-unet = Unet(7, 2).to(device)
+if torch.cuda.device_count() > 1:
+    unet = nn.DataParallel(unet)
+unet.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(unet.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.Adam(unet.parameters(), lr=0.001)
 dataload = DataLoader(dataset=crowndataset, batch_size=10)
 for b, sample_b in enumerate(dataload):
     patch = sample_b['patch'].to(device=device, dtype=torch.float32)
     mask = sample_b['mask'].to(device=device, dtype=torch.long)
+    optimizer.zero_grad()
     out = unet(patch)
     loss = criterion(out, mask)
     loss.backward()
