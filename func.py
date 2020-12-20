@@ -6,8 +6,9 @@ import torch
 import numpy as np
 from osgeo import gdal
 from matplotlib import pyplot as plt
+import torch.nn.functional as F
 from torch.utils.data import Dataset
-
+from tqdm import tqdm
 
 # # Read raster data.
 def get_raster_info(raster_data_path):
@@ -113,6 +114,26 @@ def show_sample(sample):
     ax2.imshow(mask)
     plt.title('Location:{}'.format(sample['location']))
     plt.show()
+
+
+def evaluation(net, dataloader, device):
+    net.eval()
+    tot = 0
+    for batch in tqdm(dataloader):
+        patches, masks = batch['patch'], batch['mask']
+        patches = patches.to(device=device, dtype=torch.float32)
+        masks = masks.to(device=device, dtype=torch.long)
+
+        with torch.no_grad():
+            masks_pred = net(patches)
+            cross_entropy = F.cross_entropy(masks_pred, masks).item()
+        tot += cross_entropy
+        # print(cross_entropy)
+    return tot / len(dataloader)
+
+
+
+
 
 # # palette is color map for rgb convert. preference setting.
 # # including 16 types color, can increase or decrease.

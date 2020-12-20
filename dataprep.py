@@ -9,8 +9,15 @@ import numpy as np
 tif_file = [r'../tiles/tile_WV3_Pansharpen_11_2016_{}.tif'.format(n+1) for n in range(25)]
 mask_file = [r'../masks_single_trees/mask_single_{}.tif'.format(n+1) for n in range(25)]
 
+tif_file_eval = [r'../tiles/tile_WV3_Pansharpen_11_2016_{}.tif'.format(n+1) for n in range(25, 30)]
+mask_file_eval = [r'../masks_single_trees/mask_single_{}.tif'.format(n+1) for n in range(25, 30)]
+
 #############
 crowndataset = CrownDataset(tif_file=tif_file, mask_file=mask_file, m=200, n_random=250)
+
+crowndataset_eval = CrownDataset(tif_file=tif_file_eval, mask_file=mask_file_eval, m=200, n_random=250)
+
+
 # for i in tqdm(range(len(crowndataset))):
 #     sample = crowndataset[i]
 #     print(sample['patch'].size(), sample['mask'].size(),
@@ -41,19 +48,24 @@ unet.to(device)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(unet.parameters(), lr=0.001)
 dataload = DataLoader(dataset=crowndataset, batch_size=10)
-for b, sample_b in enumerate(dataload):
-    patch = sample_b['patch'].to(device=device, dtype=torch.float32)
-    mask = sample_b['mask'].to(device=device, dtype=torch.long)
-    optimizer.zero_grad()
-    out = unet(patch)
-    loss = criterion(out, mask)
-    loss.backward()
-    optimizer.step()
-    print(b, loss)
+dataload_eval = DataLoader(dataset=crowndataset_eval, batch_size=25)
+
+# for b, sample_b in enumerate(dataload):
+#     patch = sample_b['patch'].to(device=device, dtype=torch.float32)
+#     mask = sample_b['mask'].to(device=device, dtype=torch.long)
+#     optimizer.zero_grad()
+#     out = unet(patch)
+#     loss = criterion(out, mask)
+#     loss.backward()
+#     optimizer.step()
+#     print(b, loss)
+#     evaluation(unet, dataload_eval, device)
 
 #######################
 # torch.save(unet.state_dict(), '.checkpoints/unet.pth')
-# unet.load_state_dict(torch.load('.checkpoints/unet-2.pth', map_location=device))
+unet.load_state_dict(torch.load('.checkpoints/unet-5.pth', map_location=device))
+tot = evaluation(unet, dataload_eval, device)
+print(tot)
 # sample = crowndataset[0]
 # patch = sample['patch'].to(device=device, dtype=torch.float32).reshape(1, 7, 200, 200)
 # out = unet(patch)
