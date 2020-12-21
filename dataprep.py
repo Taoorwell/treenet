@@ -19,7 +19,7 @@ mask_file_evals = [get_raster_info(file) for file in mask_file_eval]
 
 
 #############
-crowndataset = CrownDataset(tif_file=tif_files, mask_file=mask_files, m=200, n_random=250)
+crowndataset = CrownDataset(tif_file=tif_files, mask_file=mask_files, m=200, n_random=300)
 
 crowndataset_eval = CrownDataset(tif_file=tif_file_evals, mask_file=mask_file_evals, m=200, n_random=250)
 
@@ -52,13 +52,13 @@ if torch.cuda.device_count() > 1:
     unet = nn.DataParallel(unet)
 unet.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(unet.parameters(), lr=0.0001)
-dataload = DataLoader(dataset=crowndataset, batch_size=25)
+optimizer = optim.SGD(unet.parameters(), lr=0.0001, momentum=0.8)
+dataload = DataLoader(dataset=crowndataset, batch_size=30)
 dataload_eval = DataLoader(dataset=crowndataset_eval, batch_size=25)
 
-for epoch in range(10):
+for epoch in range(50):
     to_loss = 0
-    for b, sample_b in tqdm(enumerate(dataload)):
+    for sample_b in tqdm(dataload):
         patch = sample_b['patch'].to(device=device, dtype=torch.float32)
         mask = sample_b['mask'].to(device=device, dtype=torch.long)
         optimizer.zero_grad()
