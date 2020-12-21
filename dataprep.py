@@ -1,9 +1,11 @@
 from func import *
 import os
 from unet import *
+import torchvision
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 tif_file = [r'../tiles/tile_WV3_Pansharpen_11_2016_{}.tif'.format(n+1) for n in range(25)]
@@ -45,7 +47,7 @@ crowndataset_eval = CrownDataset(tif_file=tif_file_evals, mask_file=mask_file_ev
 # plt.gca().add_patch(square)
 # plt.show()
 ##############################
-
+writer = SummaryWriter(comment='lr_{}_batch_{}_sample_{}'.format(0.8, 30, 250))
 unet = Unet(7, 2)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 if torch.cuda.device_count() > 1:
@@ -56,6 +58,7 @@ optimizer = optim.SGD(unet.parameters(), lr=0.0001, momentum=0.8)
 dataload = DataLoader(dataset=crowndataset, batch_size=30)
 dataload_eval = DataLoader(dataset=crowndataset_eval, batch_size=25)
 
+# writer.add_graph(model=unet)
 for epoch in range(50):
     to_loss = 0
     for sample_b in tqdm(dataload):
@@ -68,10 +71,16 @@ for epoch in range(50):
         optimizer.step()
         to_loss += loss
     epoch_loss = to_loss / len(dataload)
+    writer.add_scalar('train_loss', epoch_loss)
     tot = evaluation(unet, dataload_eval, device)
+    writer.add_scalar('eval_loss', tot)
+    for tag, value in unet.named_parameters():
+        writer.add_histogram('weights/' + tag, value.data.cpu().numpy())
+        writer.add_histogram('grads/' + tag, value.grad.data.cpu().numpy())
     print('Epoch:{} Train Finish'.format(epoch+1), 'Average Train Loss:{}'.format(epoch_loss),
           'Evaluation Loss:{}'.format(tot))
     torch.save(unet.module.state_dict(), '.checkpoints/unet-{}'.format(epoch+1))
+writer.close()
 
 
 #######################
