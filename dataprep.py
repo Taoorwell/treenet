@@ -1,7 +1,7 @@
 from func import *
 import os
 from unet import *
-import torchvision
+# import torchvision
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
