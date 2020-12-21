@@ -63,17 +63,17 @@ class Unet(nn.Module):
         self.in_c = in_c
         self.n_c = n_c
 
-        self.inc = DoubleConv(in_c, 64)
+        self.inc = DoubleConv(in_c, 32)
 
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        self.down1 = Down(32, 64)
+        self.down2 = Down(64, 128)
+        self.down3 = Down(128, 256)
 
-        self.up1 = Up(512, 256)
-        self.up2 = Up(256, 128)
-        self.up3 = Up(128, 64)
+        self.up1 = Up(256, 128)
+        self.up2 = Up(128, 64)
+        self.up3 = Up(64, 32)
 
-        self.outc = OutConv(64, n_c)
+        self.outc = OutConv(32, n_c)
 
     def forward(self, x):
         x1 = self.inc(x)

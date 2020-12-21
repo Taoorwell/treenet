@@ -133,8 +133,6 @@ def evaluation(net, dataloader, device):
     return tot / len(dataloader)
 
 
-
-
 # # palette is color map for rgb convert. preference setting.
 # # including 16 types color, can increase or decrease.
 palette = {0: (255, 255, 255),  # White
