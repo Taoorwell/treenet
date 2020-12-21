@@ -68,10 +68,9 @@ for epoch in range(50):
         optimizer.step()
         to_loss += loss
     epoch_loss = to_loss / len(dataload)
-    print('Epoch:{} Train Finish'.format(epoch+1), 'Epoch Loss:{}'.format(epoch_loss))
-        # print('Batch:{}'.format(b), 'Loss:{}'.format(loss))
     tot = evaluation(unet, dataload_eval, device)
-    print('Epoch:{}'.format(epoch+1), 'Loss:{}'.format(tot))
+    print('Epoch:{} Train Finish'.format(epoch+1), 'Average Train Loss:{}'.format(epoch_loss),
+          'Evaluation Loss:{}'.format(tot))
     torch.save(unet.module.state_dict(), '.checkpoints/unet-{}'.format(epoch+1))
 
 
