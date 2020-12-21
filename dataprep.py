@@ -12,10 +12,16 @@ mask_file = [r'../masks_single_trees/mask_single_{}.tif'.format(n+1) for n in ra
 tif_file_eval = [r'../tiles/tile_WV3_Pansharpen_11_2016_{}.tif'.format(n+1) for n in range(25, 30)]
 mask_file_eval = [r'../masks_single_trees/mask_single_{}.tif'.format(n+1) for n in range(25, 30)]
 
-#############
-crowndataset = CrownDataset(tif_file=tif_file, mask_file=mask_file, m=200, n_random=250)
+tif_files = [get_image_data(file) for file in tif_file]
+mask_files = [get_raster_info(file) for file in mask_file]
+tif_file_evals = [get_image_data(file) for file in tif_file_eval]
+mask_file_evals = [get_raster_info(file) for file in mask_file_eval]
 
-crowndataset_eval = CrownDataset(tif_file=tif_file_eval, mask_file=mask_file_eval, m=200, n_random=250)
+
+#############
+crowndataset = CrownDataset(tif_file=tif_files, mask_file=mask_files, m=200, n_random=250)
+
+crowndataset_eval = CrownDataset(tif_file=tif_file_evals, mask_file=mask_file_evals, m=200, n_random=250)
 
 
 # for i in tqdm(range(len(crowndataset))):
@@ -50,22 +56,27 @@ optimizer = optim.Adam(unet.parameters(), lr=0.001)
 dataload = DataLoader(dataset=crowndataset, batch_size=10)
 dataload_eval = DataLoader(dataset=crowndataset_eval, batch_size=25)
 
-# for b, sample_b in enumerate(dataload):
-#     patch = sample_b['patch'].to(device=device, dtype=torch.float32)
-#     mask = sample_b['mask'].to(device=device, dtype=torch.long)
-#     optimizer.zero_grad()
-#     out = unet(patch)
-#     loss = criterion(out, mask)
-#     loss.backward()
-#     optimizer.step()
-#     print(b, loss)
-#     evaluation(unet, dataload_eval, device)
+for epoch in range(10):
+    for b, sample_b in enumerate(dataload):
+        patch = sample_b['patch'].to(device=device, dtype=torch.float32)
+        mask = sample_b['mask'].to(device=device, dtype=torch.long)
+        optimizer.zero_grad()
+        out = unet(patch)
+        loss = criterion(out, mask)
+        loss.backward()
+        optimizer.step()
+        print('Batch:{}'.format(b), 'Loss:{}'.format(loss))
+    tot = evaluation(unet, dataload_eval, device)
+    print('Epoch:{}'.format(epoch+1), 'Loss:{}'.format(tot))
+    torch.save(unet.module.state_dict(), '.checkpoints/unet-{}'.format(epoch+1))
+
 
 #######################
 # torch.save(unet.state_dict(), '.checkpoints/unet.pth')
-unet.load_state_dict(torch.load('.checkpoints/unet-5.pth', map_location=device))
-tot = evaluation(unet, dataload_eval, device)
-print(tot)
+# unet = Unet(7, 2)
+# unet.load_state_dict(torch.load('.checkpoints/unet-10.pth', map_location=torch.device('cpu')))
+# # tot = evaluation(unet, dataload_eval, device)
+# # print(tot)
 # sample = crowndataset[0]
 # patch = sample['patch'].to(device=device, dtype=torch.float32).reshape(1, 7, 200, 200)
 # out = unet(patch)

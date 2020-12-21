@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+
 # # Read raster data.
 def get_raster_info(raster_data_path):
     raster_dataset = gdal.Open(raster_data_path, gdal.GA_ReadOnly)
@@ -45,7 +46,7 @@ def vectors_to_raster(vector_data_path, raster_data_path, field="CLASS_ID"):
 # # parameter: bands data, and norma method.
 def norma_data(data, norma_methods="z-score"):
     norma_info = []
-    for i in range(1, data.shape[-1]):
+    for i in range(data.shape[-1]):
         array = data.transpose(2, 0, 1)[i, :, :]
         mins = np.min(array)
         maxs = np.max(array)
@@ -55,7 +56,7 @@ def norma_data(data, norma_methods="z-score"):
         norma_info.append(lists)
     norma_info = np.stack(norma_info, axis=0)
     new_data = []
-    for i, j in zip(range(norma_info.shape[0]), range(1, data.shape[-1])):
+    for i, j in zip(range(norma_info.shape[0]), range(data.shape[-1])):
         norma_info1 = norma_info[i, :]
         array = data[:, :, j]
         if norma_methods == "z-score":
@@ -87,8 +88,8 @@ class CrownDataset(Dataset):
 
     def __getitem__(self, item):
         i = item // self.n_random
-        image_data = get_image_data(self.tif_file[i])
-        mask_data = get_raster_info(self.mask_file[i])
+        image_data = self.tif_file[i]
+        mask_data = self.mask_file[i]
         location = random_sample(self.m)
         h, w = location[0], location[1]
         d1 = int(self.m/2 - 1)
@@ -130,7 +131,6 @@ def evaluation(net, dataloader, device):
         tot += cross_entropy
         # print(cross_entropy)
     return tot / len(dataloader)
-
 
 
 
