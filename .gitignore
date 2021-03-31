@@ -3,3 +3,4 @@ __pycache__/
 .ipynb_checkpoints/
 .vs/
 .checkpoints/
+.tensorflow/model.h5
