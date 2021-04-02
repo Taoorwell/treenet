@@ -2,7 +2,6 @@ import os
 from glob import glob
 import numpy as np
 from osgeo import gdal
-from matplotlib import pyplot as plt
 
 
 def load_data(path, mode):
