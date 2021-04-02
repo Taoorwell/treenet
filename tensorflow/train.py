@@ -86,12 +86,12 @@ model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001),
               loss=dice_loss, metrics=[dice])
 
 # tensorboard
-tensorboard_callbacks = tf.keras.callbacks.TensorBoard(log_dir='tb_callback_dir',
-                                                       histogram_freq=1)
+# tensorboard_callbacks = tf.keras.callbacks.TensorBoard(log_dir='tb_callback_dir',
+#                                                       histogram_freq=1)
 # model train and validation
-model.fit(train_dataset, steps_per_epoch=250, epochs=10,
-          validation_data=val_dataset, validation_steps=10,
-          callbacks=[tensorboard_callbacks])
+model.fit(train_dataset, steps_per_epoch=50, epochs=10,
+          validation_data=val_dataset, validation_steps=10)
+#         callbacks=[tensorboard_callbacks])
 
 
 
