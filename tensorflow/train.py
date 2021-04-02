@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2'
 
-width = 256
+width = 128
 batch_size = 5
 # Datasets construction
 
@@ -31,7 +31,7 @@ def image_dataset(path, mode, width, batch_size):
     # image path and mask path dataset
     images_path, masks_path = load_data(path, mode)
     datasets = tf.data.Dataset.from_tensor_slices((images_path, masks_path))
-    datasets = datasets.repeat()
+    # datasets = datasets.repeat()
 
     # parse path into full image and then into patches
     # define parse function
@@ -86,12 +86,57 @@ model.compile(optimizer=tf.optimizers.Adam(learning_rate=0.001),
               loss=dice_loss, metrics=[dice])
 
 # tensorboard
-# tensorboard_callbacks = tf.keras.callbacks.TensorBoard(log_dir='tb_callback_dir',
-#                                                       histogram_freq=1)
+tensorboard_callbacks = tf.keras.callbacks.TensorBoard(log_dir='tb_callback_dir',
+                                                       histogram_freq=1)
 # model train and validation
-model.fit(train_dataset, steps_per_epoch=50, epochs=10,
-          validation_data=val_dataset, validation_steps=10)
-#         callbacks=[tensorboard_callbacks])
+# train_writer = tf.summary.create_file_writer("logs/train/")
+# test_writer = tf.summary.create_file_writer("logs/test/")
+# train_step = test_step = 0
+#
+#
+# for lr in [1e-1, 1e-2, 1e-3, 1e-4, 1e-5]:
+#     train_step = test_step = 0
+#     train_writer = tf.summary.create_file_writer("logs/train/" + str(lr))
+#     test_writer = tf.summary.create_file_writer("logs/test/" + str(lr))
+#     model = build_res_unet(input_shape=(width, width, 7))
+#     optimizer = tf.optimizers.Adam(learning_rate=lr)
+#
+#     for epoch in range(num_epochs):
+#         # Iterate through training set
+#         for batch_idx, (x, y) in enumerate(train_dataset):
+#             with tf.GradientTape() as tape:
+#                 y_pred = model(x, training=True)
+#                 loss = dice_loss(y, y_pred)
+#
+#             gradients = tape.gradient(loss, model.trainable_weights)
+#             optimizer.apply_gradients(zip(gradients, model.trainable_weights))
+#
+#             with train_writer.as_default():
+#                 tf.summary.scalar("Loss", loss, step=train_step)
+#                 tf.summary.scalar(
+#                     "Accuracy", dice(y, y_pred), step=train_step,
+#                 )
+#                 train_step += 1
+#
+#         # Reset accuracy in between epochs (and for testing and test)
+#
+#         # Iterate through test set
+#         for batch_idx, (x, y) in enumerate(val_dataset):
+#             y_pred = model(x, training=False)
+#             loss = dice_loss(y, y_pred)
+#
+#             with test_writer.as_default():
+#                 tf.summary.scalar("Loss", loss, step=test_step)
+#                 tf.summary.scalar(
+#                     "Accuracy", dice(y, y_pred), step=test_step,
+#                 )
+#                 test_step += 1
+model.fit(train_dataset, steps_per_epoch=100, epochs=50,
+          validation_data=val_dataset, validation_steps=10,
+          callbacks=[tensorboard_callbacks])
+# model.save('model.h5')
+model.save_weights('ckpt')
+
 
 
 
